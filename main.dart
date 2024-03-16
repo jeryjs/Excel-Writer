@@ -9,13 +9,13 @@ void main() async {
   var excelFilePath = 'input.xlsx';
 
   // The path to the output file
-  var outputFilePath = 'output2.xlsx';
+  var outputFilePath = 'output3.xlsx';
 
   // The map to send to the Go program
   var map = [
 			{"type": "updateCells", "sheet": "START", "mappings": {"C06": "Test", "C07": "Test Position", "C08": "GoLang", "C09": "22GO01", "C10": "CSE/AI", "C11": "4", "C12": "2024"}},
 			{"type": "insertColumn", "sheet": "IA", "column": "O", "count": 3},
-			{"type": "removeColumn", "sheet": "IA", "column": "R"},
+			// {"type": "removeColumn", "sheet": "IA", "column": "P"},
 			{"type": "updateCells", "sheet": "IA", "mappings": {"E08": "CO1", "F08": "CO2", "G08": "CO3", "H08": "CO4", "I08": "CO5", "J08": "CO6", "K08": "CO1", "L08": "CO2", "M08": "CO3", "N08": "CO4", "O08": "CO5"}},
 			{"type": "updateCells", "sheet": "IA", "mappings": {"E09": "5", "F09": "5", "G09": "5", "H09": "5", "I09": "5", "J09": "5", "K09": "5", "L09": "5", "M09": "5", "N09": "5", "O09": "5"}},
 			{"type": "updateCells", "sheet": "IA", "mappings": {"E10": "3", "F10": "3", "G10": "3", "H10": "3", "I10": "3", "J10": "3", "K10": "3", "L10": "3", "M10": "3", "N10": "3", "O10": "3"}},
@@ -27,7 +27,7 @@ void main() async {
   var jsonString = jsonEncode(map);
 
   // Start the Go program as a separate process
-  var process = await Process.start(goProgramPath, [jsonString]);
+  var process = await Process.start(goProgramPath, ["v2", jsonString]);
 
   // Listen to the stderr stream and print each line
   process.stderr.transform(utf8.decoder).transform(LineSplitter()).listen((line) {

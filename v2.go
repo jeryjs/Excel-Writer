@@ -70,7 +70,7 @@ func v2(args []string) {
 	for _, op := range operations {
 		switch op.Type {
 		case "updateCells":
-			fmt.Fprintf(os.Stderr, "\nSheet: %s  ->  ", op.Sheet)
+			fmt.Fprintf(os.Stderr, "\nupdateCells: %s  ->  ", op.Sheet)
 			for key, value := range op.Mappings {
 				fmt.Fprintf(os.Stderr, "%s : %s  |  ", key, value)
 				x, y, _ := xlsx.GetCoordsFromCellIDString(key)
@@ -97,6 +97,28 @@ func v2(args []string) {
 				// f.InsertCols(op.Sheet, op.Column, 1)
 				// f.SetColStyle(op.Sheet, op.Column, colStyle)
 			}
+		case "hideColumn":
+			fmt.Fprintf(os.Stderr, "\nhideColumn: %s  ->  ", op.Sheet)
+			for i := 0; i < op.Count; i++ {
+				colIndex := xlsx.ColLettersToIndex(op.Column) + i
+				hidden := true
+				fmt.Fprintf(os.Stderr, "%s | ", xlsx.ColIndexToLetters(colIndex))
+				f.Sheet[op.Sheet].Col(colIndex).Hidden = &hidden
+			}
+		case "showColumn":
+			fmt.Fprintf(os.Stderr, "\nshowColumn: %s  ->  ", op.Sheet)
+			for i := 0; i < op.Count; i++ {
+				colIndex := xlsx.ColLettersToIndex(op.Column) + i
+				hidden := false
+				fmt.Fprintf(os.Stderr, "%s | ", xlsx.ColIndexToLetters(colIndex))
+				f.Sheet[op.Sheet].Col(colIndex).Hidden = &hidden
+			}
+		case "hideSheet":
+			fmt.Fprintf(os.Stderr, "\nhideSheet: %s  ->  ", op.Sheet)
+			f.Sheet[op.Sheet].Hidden = true
+		case "showSheet":
+			fmt.Fprintf(os.Stderr, "\nshowSheet: %s  ->  ", op.Sheet)
+			f.Sheet[op.Sheet].Hidden = false
 		default:
 			fmt.Fprintf(os.Stderr, "Unknown operation type: %s\n", op.Type)
 		}

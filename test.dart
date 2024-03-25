@@ -1,24 +1,34 @@
-String getColName(String start, int n) {
-  int ascii = start.codeUnitAt(0);
-  ascii += n;
+import 'dart:convert';
+import 'dart:io';
 
-  if (ascii > 90) {
-    int overflow = ascii - 90;
-    int firstChar = 64 + (overflow / 26).floor();
-    int secondChar = 64 + (overflow % 26);
-    if (secondChar == 64) {
-      firstChar -= 1;
-      secondChar = 90;
-    }
-    return String.fromCharCode(firstChar+1) + String.fromCharCode(secondChar);
-  } else {
-    return String.fromCharCode(ascii);
-  }
-}
+void main() async {
+  // The path to the Go program
+  var goProgramPath = 'excel-writer.exe';
 
-void main(List<String> args) {
-  // print(getColName("Z", 20));
-  for (var i = 0; i < 20; i++) {
-    print(getColName("Z", i));
-  }
+  // The path to the Excel file
+  var inputFilePath = 'input.xlsx';
+
+  // The path to the output file
+  var outputFilePath = 'output2.xlsx';
+
+  // The map to send to the Go program
+  var map = [
+    {"type": "updateCells", "sheet": "START", "mappings": {"C06": "Test", "C07": "Test Position", "C08": "GoLang", "C09": "22GO01", "C10": "CSE/AI", "C11": "4", "C12": "2024"}},
+    {"type": "removeColumn", "sheet": "IA", "column": "R", "count": 3},
+    {"type": "insertColumn", "sheet": "IA", "column": "O", "count": 3},
+    {"type": "hideColumn", "sheet": "CES", "column": "O", "count": 3},
+    {"type": "showColumn", "sheet": "SEE", "column": "H", "count": 3},
+    {"type": "hideSheet", "sheet": "SEE"},
+    {"type": "showSheet", "sheet": "IA"},
+  ];
+
+  // encode the map as a JSON string
+  var operationJson = jsonEncode(map);
+
+  // Start the Go program as a separate process
+  var process = await Process.start(goProgramPath, ["-v", "v2", "-op", operationJson, "-i", inputFilePath, "-o", outputFilePath]);
+
+  // write the stdout and stderr of the process to the console
+  stdout.addStream(process.stdout);
+  stderr.addStream(process.stderr);
 }

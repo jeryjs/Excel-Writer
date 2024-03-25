@@ -1,87 +1,57 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/xuri/excelize/v2"
 )
 
-func v1(args []string) {
+// v1 performs a series of operations on an Excel file.
+// It takes a slice of Operation structs, the input file path, and the output file path as parameters.
+// The function opens the input Excel file, performs the specified operations on it, and saves the modified file.
+// The supported operations include updating cells, removing columns, inserting columns, hiding columns, hiding sheets, showing columns, and showing sheets.
+// The function returns an error if there is any issue with opening or saving the Excel file.
+func v1(operations []Operation, inputFile string, outputFile string) {
 	fmt.Fprintln(os.Stderr, "using V1...")
 	var f *excelize.File
 
-	// If operations was not provided, use some default values
-	if len(args) < 2 || args[1] == "" {
-		operations := []string{
-			`{"type": "updateCells", "sheet": "START", "mappings": {"C06": "Test", "C07": "Test Position", "C08": "GoLang", "C09": "22GO01", "C10": "CSE/AI", "C11": "4", "C12": "2024"}}`,
-			`{"type": "insertColumn", "sheet": "IA", "column": "O", "count": 3}`,
-			`{"type": "removeColumn", "sheet": "IA", "column": "R"}`,
-			`{"type": "updateCells", "sheet": "IA", "mappings": {"E08": "CO1", "F08": "CO2", "G08": "CO3", "H08": "CO4", "I08": "CO5", "J08": "CO6", "K08": "CO1", "L08": "CO2", "M08": "CO3", "N08": "CO4", "O08": "CO5"}}`,
-			`{"type": "updateCells", "sheet": "IA", "mappings": {"E09": "5", "F09": "5", "G09": "5", "H09": "5", "I09": "5", "J09": "5", "K09": "5", "L09": "5", "M09": "5", "N09": "5", "O09": "5"}}`,
-			`{"type": "updateCells", "sheet": "IA", "mappings": {"E10": "3", "F10": "3", "G10": "3", "H10": "3", "I10": "3", "J10": "3", "K10": "3", "L10": "3", "M10": "3", "N10": "3", "O10": "3"}}`,
-			`{"type": "updateCells", "sheet": "IA", "mappings": {"E11": "4", "F11": "4", "G11": "4", "H11": "4", "I11": "4", "J11": "4", "K11": "4", "L11": "4", "M11": "4", "N11": "4", "O11": "4"}}`,
-			`{"type": "updateCells", "sheet": "IA", "mappings": {"E12": "5", "F12": "5", "G12": "5", "H12": "5", "I12": "5", "J12": "5", "K12": "5", "L12": "5", "M12": "5", "N12": "5", "O12": "5"}}`,
-		}
-		args = append(args, "["+strings.Join(operations, ",")+"]")
-		if len(args) < 3 {
-			args = append(args, "input.xlsx")
-		}
-	}
-
-	// Unmarshal the JSON input
-	var operations []Operation
-	err := json.Unmarshal([]byte(args[1]), &operations)
+	// Load the input excel file
+	f, err := excelize.OpenFile(inputFile)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error unmarshalling JSON:", err)
+		fmt.Fprintln(os.Stderr, "Error opening Excel file: ", err)
 		os.Exit(1)
-	}
-
-	// If input file path was provided use it, else read from standard input
-	if len(args) >= 3 && args[2] != "" {
-		var err error
-		f, err = excelize.OpenFile(args[2])
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error opening Excel file:", err)
-			os.Exit(1)
-		}
 	} else {
-		// Read the Excel file from standard input
-		inputBytes, err := io.ReadAll(os.Stdin)
-		if err != nil {
-			panic(err)
-		}
-		f, err = excelize.OpenReader(bytes.NewReader(inputBytes))
-		if err != nil {
-			panic(err)
-		}
+		fmt.Println("Excel file read from: ", inputFile)
 	}
 
 	// Perform the operations on the Excel file
 	for _, op := range operations {
 		switch op.Type {
+
+		// - "updateCells": Updates the values of specific cells in a sheet.
 		case "updateCells":
-			fmt.Fprintf(os.Stderr, "\nupdateCells: %s  ->  ", op.Sheet)
+			fmt.Printf("updateCells: %s  ->  ", op.Sheet)
 			for key, value := range op.Mappings {
-				fmt.Fprintf(os.Stderr, "%s : %s  |  ", key, value)
+				fmt.Printf("%s : %s  |  ", key, value)
 				f.SetCellDefault(op.Sheet, key, value)
 			}
+
+		// - "removeColumn": Removes a column from a sheet.
 		case "removeColumn":
-			fmt.Fprintf(os.Stderr, "\nremoveColumn: %s  ->  ", op.Sheet)
+			fmt.Printf("removeColumn: %s  ->  ", op.Sheet)
 			for i := 1; i <= op.Count; i++ {
-				fmt.Fprintf(os.Stderr, "%d : %s | ", i+1, op.Column)
+				fmt.Printf("%d : %s | ", i+1, op.Column)
 				f.RemoveCol(op.Sheet, op.Column)
 			}
+
+		// - "insertColumn": Inserts a column into a sheet.
 		case "insertColumn":
-			fmt.Fprintf(os.Stderr, "\ninsertColumn: %s  ->  ", op.Sheet)
+			fmt.Printf("insertColumn: %s  ->  ", op.Sheet)
 			colStyle, _ := f.GetColStyle(op.Sheet, op.Column)
 			for i := 0; i < op.Count; i++ {
-				fmt.Fprintf(os.Stderr, "%d : %s | ", i+1, op.Column)
+				fmt.Printf("%d : %s | ", i+1, op.Column)
 				f.InsertCols(op.Sheet, op.Column, 1)
 				f.SetColStyle(op.Sheet, op.Column, colStyle)
 
@@ -95,42 +65,49 @@ func v1(args []string) {
 					f.SetCellStyle(op.Sheet, op.Column+strconv.Itoa(i), op.Column+strconv.Itoa(i), cellStyle)
 				}
 			}
+
+		// - "hideColumn": Hides a column in a sheet.
 		case "hideColumn":
-			fmt.Fprintf(os.Stderr, "\nhideColumn: %s  ->  ", op.Sheet)
+			fmt.Printf("hideColumn: %s  ->  ", op.Sheet)
 			for i := 0; i < op.Count; i++ {
 				colIndex, _ := excelize.ColumnNameToNumber(op.Column)
 				colName, _ := excelize.ColumnNumberToName(colIndex + i)
-				fmt.Fprintf(os.Stderr, "%s | ", colName)
+				fmt.Printf("%s | ", colName)
 				f.SetColVisible(op.Sheet, colName, false)
 			}
+
+		// - "showColumn": Shows a hidden column in a sheet.
 		case "showColumn":
-			fmt.Fprintf(os.Stderr, "\nshowColumn: %s -> ", op.Sheet)
+			fmt.Printf("showColumn: %s -> ", op.Sheet)
 			for i := 0; i < op.Count; i++ {
 				colIndex, _ := excelize.ColumnNameToNumber(op.Column)
 				colName, _ := excelize.ColumnNumberToName(colIndex + i)
-				fmt.Fprintf(os.Stderr, "%s | ", colName)
+				fmt.Printf("%s | ", colName)
 				f.SetColVisible(op.Sheet, colName, true)
 			}
+
+		// - "hideSheet": Hides a sheet in the workbook.
 		case "hideSheet":
-			fmt.Fprintf(os.Stderr, "\nhideSheet: %s -> ", op.Sheet)
+			fmt.Printf("hideSheet: %s", op.Sheet)
 			f.SetSheetVisible(op.Sheet, false)
+
+		// - "showSheet": Unhides a sheet in the workbook.
 		case "showSheet":
-			fmt.Fprintf(os.Stderr, "\nshowSheet: %s -> ", op.Sheet)
+			fmt.Printf("showSheet: %s", op.Sheet)
 			f.SetSheetVisible(op.Sheet, true)
+
+		// display error message if unknown operation
 		default:
-			fmt.Fprintf(os.Stderr, "Unknown operation type: %s\n", op.Type)
+			fmt.Printf("Unknown operation type: %s", op.Type)
 		}
+
+		fmt.Println()
 	}
 
-	// Write the Excel file to standard output if the current app is the compiled exe else if its the go file then save the output to output.xlsx
-	if strings.HasSuffix(os.Args[0], "exe\\excel-writer.exe") {
-		if err := f.SaveAs("output.xlsx"); err != nil {
-			panic(err)
-		}
+	// Save the output excel file
+	if err := f.SaveAs(outputFile); err != nil {
+		panic(err)
 	} else {
-		// if err := f.Write(os.Stdout); err != nil {
-		// 	panic(err)
-		// }
-		f.SaveAs(args[3])
+		fmt.Println("Excel file written to:", outputFile)
 	}
 }
